@@ -1,0 +1,21 @@
+---
+title: "Leaflet Map of GaHIN Data"
+author: "David Wang"
+date: "7/22/2020"
+output: html_document
+---
+
+```{r}
+geocode <- read.csv('geocode.csv')
+
+library(leaflet)
+library(dplyr)
+
+Georgia.HIN <- geocode %>% mutate(info = paste('Latitude: ', lat, "<br/>", 'Longitude: ',lon))
+
+head(Georgia.HIN$info)
+
+leaflet() %>% 
+  addTiles() %>% addCircleMarkers(data = Georgia.HIN, lat = ~lat, lng = ~lon, radius = ~3, popup = ~info) 
+```
+

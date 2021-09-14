@@ -1,0 +1,341 @@
+---
+title: "test kml"
+author: "Sharvil Patel and David Wang"
+date: "7/10/2020"
+output: html_document
+---
+
+# GAHIN Sites
+```{r}
+library(rgdal); library(XML); library(xml2); library(tidyverse)
+library(httr); library(jsonlite); library(leaflet); library(maps)
+library(MASS); library(reshape2)
+
+doc0 <- xmlTreeParse("/Users/yufungdavidwang/Desktop/School/2nd year Internship/HIN List/GaHIN Coverage Map.kml", useInternal = TRUE)
+rootNode0 <- xmlRoot(doc0)
+rootName0 <- xmlName(rootNode0)
+element1Name0 <- names(rootNode0)
+
+nodeNames <- names(rootNode0[1][[1]])
+
+full_doc <- xmlToList(doc0) #Doc File
+
+# Names of Clinics
+for (i in 18:length(full_doc$Document)) {
+  print(full_doc$Document[[i]]$name)
+}
+
+# get all dfs... the == 4 signifies if data is NULL (4 characters)
+i=18
+schools <- list()
+for (x in 2:length(full_doc$Document[[i]])) {
+  
+  schools[[x]] <- data.frame("Clinic" = ifelse(nchar(full_doc$Document[[i]][[x]]$name) == 4, NA, full_doc$Document[[i]][[x]]$name),
+                                "Address" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]),
+                                "City" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]),
+                                "State" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]),
+                                "ZIP" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]))
+
+  }
+schools <- bind_rows(schools)
+
+i=19
+practices <- list()
+for (x in 2:length(full_doc$Document[[i]])) {
+  
+  practices[[x]] <- data.frame("Clinic" = ifelse(nchar(full_doc$Document[[i]][[x]]$name) == 4, NA, full_doc$Document[[i]][[x]]$name),
+                                "Address" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]),
+                                "City" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]),
+                                "State" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]),
+                                "ZIP" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]))
+
+  }
+practices <- bind_rows(practices)
+
+i=20
+clinics <- list()
+for (x in 2:length(full_doc$Document[[i]])) {
+  
+  clinics[[x]] <- data.frame("Clinic" = ifelse(nchar(full_doc$Document[[i]][[x]]$name) == 4, NA, full_doc$Document[[i]][[x]]$name),
+                                "Address" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[2]][[1]]),
+                                "City" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]),
+                                "State" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]),
+                                "ZIP" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]))
+
+  }
+clinics <- bind_rows(clinics)
+
+i=21
+hospitals <- list()
+for (x in 2:length(full_doc$Document[[i]])) {
+  
+  hospitals[[x]] <- data.frame("Clinic" = ifelse(nchar(full_doc$Document[[i]][[x]]$name) == 4, NA, full_doc$Document[[i]][[x]]$name),
+                                "Address" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[3]][[1]]),
+                                "City" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[4]][[1]]),
+                                "State" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[5]][[1]]),
+                                "ZIP" = ifelse(nchar(full_doc$Document[[i]][[x]]$ExtendedData[[6]][[1]]) == 4, NA, full_doc$Document[[i]][[x]]$ExtendedData[[6]][[1]]))
+
+  }
+hospitals <- bind_rows(hospitals)
+
+
+GAHIN <- rbind(schools, practices, clinics, hospitals) %>% 
+  mutate(Clinic = gsub("\t", " ", Clinic)) %>% 
+  mutate(Address = gsub("\t", " ", Address)) %>%
+  mutate(GAHIN = "GAHIN") %>%
+  mutate(Clinic_join = paste(Clinic, City, sep = " "))
+
+GAHIN
+```
+
+# Carequality Sites
+```{r}
+CQ <- read_csv("C:/Users/soumi/Downloads/Organizations (3).csv") %>%
+  filter(`Org-State` == "GA") %>% 
+  mutate(Clinic_join = paste(`Org-Name`, `Org-City`, `Org-State`, sep = " ")) %>%
+  mutate(CQ = "CQ")
+```
+
+# Commonwell Sites
+```{r}
+CW <- read_csv("C:/Users/soumi/Downloads/CommonWellProvider (5).csv") %>% 
+  mutate(Zip = substr(Zip,1,5)) %>% 
+  mutate(Address = paste(Name, City, State, Zip, sep = ", ")) %>%
+  mutate(CW = "CW") %>% 
+  filter(State == "GA")
+```
+
+# Geocode Things -- Bing API
+```{r}
+bing_api = "AhMKaEI7fZcMioyBaIlG_0EqPiAaltdG5NprwbXyaJb54JDlW2mY3jkLwdp294v-"
+link_start = "http://dev.virtualearth.net/REST/v1/Locations/"
+
+# GAHIN Geocode
+gahin1 <- GAHIN %>% 
+  mutate(full = gsub(" ", "%20", paste(Clinic, Address, City, State, ZIP, sep = " "))) %>% 
+  dplyr::select(full) #replace all spaces with %20 so that it can properly be placed into URL Format
+
+
+gahin_list = list()
+for (i in 1:nrow(gahin1)) {
+  one <- content(GET(paste0(link_start,gahin1$full[i],"?maxResults=1&key=",bing_api)))$resourceSets[[1]]$resources[[1]]$point$coordinates[[1]]
+  two <- content(GET(paste0(link_start, gahin1$full[i],"?maxResults=1&key=",bing_api)))$resourceSets[[1]]$resources[[1]]$point$coordinates[[2]]
+  
+  gahin_list[[i]] <- data.frame(
+    clinic = GAHIN$Clinic[i], add = GAHIN$Address[i], city = GAHIN$City[i],zip = GAHIN$ZIP[i],
+    lat = ifelse(is.numeric(one), one, NA),
+    lon = ifelse(is.numeric(two), two, NA)
+    )
+}
+gahin_list <- bind_rows(gahin_list)
+
+# Carequality Geocode
+cq1 <- gsub(", ", " ", CQ$Clinic_join) %>% gsub(" ", "%20", .)
+
+cq_list = list()
+for (i in 1:length(cq1)) {
+  one <- content(
+    GET(paste0(link_start, cq1[i],"?maxResults=1&key=",bing_api))
+    )$resourceSets[[1]]$resources[[1]]$point$coordinates[[1]]
+  
+  two <- content(
+    GET(paste0(link_start, cq1[i],"?maxResults=1&key=",bing_api))
+    )$resourceSets[[1]]$resources[[1]]$point$coordinates[[2]]
+
+  cq_list[[i]] <- data.frame(
+    clinic = CQ$`Org-Name`[i], city = CQ$`Org-City`[i], 
+    lat = ifelse(is.numeric(one), one, NA),
+    lon = ifelse(is.numeric(two), two, NA)
+  )
+}
+cq_list <- bind_rows(cq_list)
+
+
+# Commonwell Geocode
+cw <- gsub(", ", " ", CW$Address) %>% gsub(" ", "%20", .)
+
+cw_list = list()
+for (i in 1:length(cw)) {
+  one <- content(
+    GET(paste0(link_start, cw[i],"?maxResults=1&key=",bing_api))
+    )$resourceSets[[1]]$resources[[1]]$point$coordinates[[1]]
+  
+  two <- content(
+    GET(paste0(link_start, cw[i],"?maxResults=1&key=",bing_api))
+    )$resourceSets[[1]]$resources[[1]]$point$coordinates[[2]]
+
+  cw_list[[i]] <- data.frame(
+    clinic = CW$Name[i], city = CW$City[i], 
+    lat = ifelse(is.numeric(one), one, NA),
+    lon = ifelse(is.numeric(two), two, NA)
+  )
+}
+
+cw_list <- bind_rows(cw_list)
+```
+
+# Create final lists -- Federal Communications Commissions API
+```{r}
+# gahin
+fips_list <- list()
+for (i in 1:nrow(gahin_list)) {
+  r <- content(GET(paste0("https://geo.fcc.gov/api/census/block/find?latitude=",gahin_list$lat[i],"&longitude=",gahin_list$lon[i],"&showall=false&format=json")))$County$FIPS
+  
+  fips_list[[i]] <- data.frame(
+        clinic = gahin_list$clinic[i], add = gahin_list$add[i], city = gahin_list$city[i],zip = gahin_list$zip[i],lat = gahin_list$lat[i], lon = gahin_list$lon[i],
+    coord = 
+      ifelse(!is.null(r), r, NA))
+}
+fips_list <- bind_rows(fips_list)
+
+# carequality
+fips_list3 <- list()
+for (i in 1:nrow(cq_list)) {
+  r <- content(GET(paste0("https://geo.fcc.gov/api/census/block/find?latitude=",cq_list$lat[i],"&longitude=",cq_list$lon[i],"&showall=false&format=json")))$County$FIPS
+  
+  fips_list3[[i]] <- data.frame(
+        clinic = cq_list$clinic[i], city = cq_list$city[i], lat = cq_list$lat[i], lon = cq_list$lon[i], coord = 
+      ifelse(!is.null(r), r, NA))
+}
+fips_list3 <- bind_rows(fips_list3)
+
+# commonwell
+fips_list5 <- list()
+for (i in 1:nrow(cw_list)) {
+  r <- content(GET(paste0("https://geo.fcc.gov/api/census/block/find?latitude=",cw_list$lat[i],"&longitude=",cw_list$lon[i],"&showall=false&format=json")))$County$FIPS
+  
+  fips_list5[[i]] <- data.frame(
+        clinic = cw_list$clinic[i], city = cw_list$city[i], lat = cw_list$lat[i], lon = cw_list$lon[i], coord = 
+      ifelse(!is.null(r), r, NA))
+}
+fips_list5 <- bind_rows(fips_list5)
+```
+
+# Identify overlapping sources
+```{r}
+library(fuzzyjoin)
+
+merge1 <- stringdist_full_join(fips_list %>% filter(!is.na(clinic)) %>% mutate(clinic_join = paste(clinic, coord, sep = " ")), 
+                     fips_list5 %>% filter(!is.na(clinic)) %>% mutate(clinic_join = paste(clinic, coord, sep = " ")), 
+                     by = "clinic_join", max_dist = 3, ignore_case = TRUE) %>%
+  dplyr::select("gahin_clinic" = clinic.x, "gahin_lat" = lat.x, "gahin_lon" = lon.x, "gahin_fips" = coord.x,
+                "cw_clinic" = clinic.y, "cw_lat" = lat.y, "cw_lon" = lon.y, "cw_fips" = coord.y)
+
+merge2 <- stringdist_full_join(merge1 %>% mutate(clinic_join = paste(cw_clinic, cw_fips, sep = " ")),
+                               fips_list3 %>% filter(!is.na(clinic)) %>% mutate(clinic_join = paste(clinic, coord, sep = " ")),
+                               by = "clinic_join", max_dist = 3, ignore_case = TRUE) %>%
+  dplyr::select(-c("clinic_join.x", "clinic_join.y", "city")) %>% dplyr::rename(cq_clinic = clinic, cq_lat = lat, cq_lon = lon, cq_fips = coord)
+
+df <- merge2 %>% mutate(site_number = ifelse(is.na(gahin_clinic) & is.na(cw_clinic) & is.na(cq_clinic), 0,
+                                      ifelse(is.na(gahin_clinic) & is.na(cw_clinic) & !is.na(cq_clinic), 1, 
+                                      ifelse(is.na(gahin_clinic) & !is.na(cw_clinic) & is.na(cq_clinic), 1,
+                                      ifelse(!is.na(gahin_clinic) & is.na(cw_clinic) & is.na(cq_clinic), 1,
+                                      ifelse(is.na(gahin_clinic) & !is.na(cw_clinic) & !is.na(cq_clinic), 2,
+                                      ifelse(!is.na(gahin_clinic) & is.na(cw_clinic) & !is.na(cq_clinic), 2,
+                                      ifelse(!is.na(gahin_clinic) & !is.na(cw_clinic) & is.na(cq_clinic), 2, 3
+                                      ))))))))
+total_count <- df %>% mutate(fips = ifelse(!is.na(gahin_fips), gahin_fips, 
+                            ifelse(!is.na(cw_fips), cw_fips, 
+                                   ifelse(!is.na(cq_fips), cq_fips, NA)))) %>%
+  group_by(fips) %>% tally()
+
+count_sitecontrolled <- df %>% mutate(fips = ifelse(!is.na(gahin_fips), gahin_fips, 
+                            ifelse(!is.na(cw_fips), cw_fips, 
+                                   ifelse(!is.na(cq_fips), cq_fips, NA)))) %>%
+  group_by(fips, site_number) %>% tally()
+
+
+```
+
+```{r}
+# Base Map Data
+data(county.fips)
+
+m.usa <- map_data("county") %>% filter(region == "georgia")
+m.usa$id <- m.usa$subregion
+m.usa <- m.usa[ ,-5]
+names(m.usa)[5] <- 'region'
+
+# HIN Density Data
+counties <- county.fips %>% mutate(fips = as.character(fips)) %>% 
+  full_join(full_list, by='fips') %>% filter(fips > 1299 & fips < 1400) %>%
+  mutate(county = sub(".*,", "", polyname)) %>% 
+  left_join(map_data("county") %>% filter(region == "georgia") %>% rename(county = subregion), by = "county")
+
+HIN_vals <- county.fips %>% mutate(fips = as.character(fips)) %>% 
+  full_join(total_count, by='fips') %>% filter(fips > 1299 & fips < 1400) %>%
+  mutate(county = sub(".*,", "", polyname)) %>% 
+  left_join(map_data("county") %>% filter(region == "georgia") %>% rename(county = subregion), by = "county") %>%
+  group_by(fips) %>% filter(order == median(order)) %>% ungroup()
+
+population <- read_csv("C:/Users/soumi/Downloads/PopulationReport.csv")[-1,] %>% rename(fips = 1) %>% rename(pop = 3) %>% 
+  mutate(pop = gsub(",","", pop)) %>% mutate(pop_1000 = as.integer(pop)/1000)
+
+HIN_vals <- HIN_vals %>% left_join(population, by = "fips") %>% mutate(density = n/pop_1000)
+```
+
+``` {r}
+# Medically Underserved Data
+mua <- read_csv("https://data.hrsa.gov//DataDownload/DD_Files/MUA_DET.csv") %>% 
+  dplyr::select(`State and County Federal Information Processing Standard Code`, `IMU Score`,
+         `Designation Type Code`,
+         `Rural Status Code`,
+         `Percent of Population with Incomes at or Below 100 Percent of the U.S. Federal Poverty Level`,
+         `Percentage of Population Age 65 and Over`, `Infant Mortality Rate`,
+         `Designation Population in a Medically Underserved Area/Population (MUA/P)`,
+         `Providers per 1000 Population`) %>%
+  mutate(fips = as.character(`State and County Federal Information Processing Standard Code`)) %>%
+  rename(IMU = `IMU Score`)
+
+mua2 <- county.fips %>% mutate(fips = as.character(fips)) %>% 
+  full_join(mua, by='fips') %>% filter(fips > 12999 & fips < 14000) %>%
+  mutate(county = sub(".*,", "", polyname)) %>%
+  left_join(map_data("county") %>% filter(region == "georgia") %>% rename(county = subregion), by = "county")
+
+# Actual Map
+ggplot(data = mua2, aes(map_id = county)) + 
+  geom_map(map = m.usa, aes(fill = IMU)) +
+  geom_point(data = HIN_vals, aes(x = long, y = lat, size = density)) +
+  expand_limits(x = m.usa$long, y = m.usa$lat) +
+  coord_map()
+```
+## POISSON MODELING
+```{r}
+# Linear Regression Data Processing
+full <- mua2 %>% left_join(HIN_vals, by = "fips") %>% 
+  mutate(total = ifelse(is.na(n), 0, n)) %>%
+  dplyr::select(fips = fips, polyname = polyname.x, 
+                lat = lat.x, lon = long.y,IMU = IMU, 
+                rural = `Rural Status Code`, 
+                income = `Percent of Population with Incomes at or Below 100 Percent of the U.S. Federal Poverty Level`, 
+                providers = `Providers per 1000 Population`,
+                old = `Percentage of Population Age 65 and Over`,
+                infant = `Infant Mortality Rate`,
+                total, pop_1000, density)
+
+reg_data <- full %>% group_by(fips) %>% slice(1) %>% ungroup %>% mutate(rural = as.factor(rural))
+
+reg_data %>% ggplot(aes(x = IMU, y = total)) + geom_point()
+
+ # logistic regression
+summary(p1 <- glm(outcome ~ rural + income + old + infant + providers + as.numeric(pop_1000), 
+                  family = "binomial", 
+                  data = reg_data %>% mutate(outcome = ifelse(total == 0, 0, 1))))
+
+summary(p1 <- lm(total ~ as.numeric(pop_1000) + IMU, 
+                  data = reg_data %>% mutate(outcome = ifelse(total == 0, 0, 1)) 
+                 # %>% filter(total != 0)
+                 ))
+
+# Run Poisson Regressions
+library(pscl)
+m1 <- zeroinfl(total ~ rural + income + old + infant + providers + as.numeric(pop_1000),
+               data = reg_data %>% mutate(outcome = ifelse(total == 0, 0, 1)))
+summary(m1)
+```
+
+
+
+
+
+
